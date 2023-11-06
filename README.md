@@ -19,6 +19,7 @@ It takes only username as parameter in GET request along with the custom token p
 In case of invalid custom token it throws an **error 401 Unauthorized**.
 The username has to be passed in the **URL as a param** to get the profile details. _for eg: 127.0.0.1:8000/accounts/profile/view/?username=username_.
 It returns with a JsonResponse containing username, email and full name.
+For full name a serializer has been used that combines the first name and last name and returns the full name.
 
 ## Profile Edit
 The profile edit allows to modify username, firstname and last name _(Any of these or all of them)_.
