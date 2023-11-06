@@ -30,10 +30,16 @@ class RegistrationView(APIView):
             username = request.data.get("username")
             first_name = request.data.get("first_name")
             last_name = request.data.get("last_name")
-            user = isUnique(username)
-            if user:
-                return Response({"error":"A user with that username already exists."})
-            
+            try:
+                user = isUnique(username)
+                if user:
+                    return Response({"error":"A user with that username already exists."})
+            except:
+                pass
+            if first_name is None:
+                first_name = ""
+            if last_name is None:
+                last_name = ""
             if len(password) < 8:
                 return Response({"error": "This password is too short. It must contain at least 8 characters."})       
             
@@ -88,13 +94,14 @@ class LoginView(APIView):
                 id_token = user_data.get("idToken")
                 email = user_data.get("email")
                 user = User.objects.get(email=email)
-                response_data = {
-                    "username": user.username,
-                    "email": email,
-                    "fullname": user.first_name +" "+ user.last_name,
-                    "custom_token": id_token
-                }
-                return Response(response_data, status=status.HTTP_200_OK)
+                serializer = UserProfileSerializer(user)
+                data = serializer.data
+                if user.username is None:
+                    data['username'] = ""
+                if user.first_name is None or user.last_name is None:
+                    data['full_name'] = ""
+                data['custom_token'] = id_token
+                return Response(data, status=status.HTTP_200_OK)
             else:
                 return Response({'error': 'Email or password is invalid.'},status=status.HTTP_401_UNAUTHORIZED)
             
@@ -107,6 +114,8 @@ class ProfileView(APIView):
             user = User.objects.get(username=username)
             serializer = UserProfileSerializer(user)
             data = serializer.data
+            if user.first_name is None and user.last_name is None:
+                data['full_name'] = ""
             return Response(data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': 'Unauthorized request.'},status=status.HTTP_401_UNAUTHORIZED)
@@ -126,14 +135,14 @@ class ProfileEditView(APIView):
                 first_name = request.data.get("first_name")
                 if first_name:
                     user.first_name = first_name
-                    response["first_name"] = first_name
+                    # response["first_name"] = first_name
             except:
                 pass
             try:
                 last_name = request.data.get("last_name")
                 if last_name:
                     user.last_name = last_name
-                    response["last_name"] = last_name
+                    # response["last_name"] = last_name
             except:
                 pass
             try:
@@ -143,10 +152,20 @@ class ProfileEditView(APIView):
                         return Response({"error":"A user with that username already exists."})
                     else:
                         user.username = username
-                        response["username"] = username
             except:
                 pass
             user.save()
+            response["email"] = email
+            if user.username is None:
+                response["username"] = ""
+            else:
+                response["username"] = user.username
+            if user.first_name is None and user.last_name is None:
+                response["full_name"] = ""
+            else:
+                serializer = UserProfileSerializer(user)
+                data = serializer.data
+                response["full_name"] = data["full_name"]
             return Response(response, status=status.HTTP_200_OK)
         return JsonResponse({"error":"There was error saving the details"}, status=status.HTTP_401_UNAUTHORIZED)
 
